@@ -25,6 +25,8 @@ dependencies:
   - graphviz
   - graphite2
   - tqdm
+  - ipywidgets
+  - nodejs>=10.8
   - pip:
       - nvidia-ml-py3
       - dataclasses
@@ -32,7 +34,6 @@ dependencies:
       - fastprocess
       - utils
       - graphviz
-      - ipywidgets
       - nbdev
       - azure-cognitiveservices-search-imagesearch
       - blingfire
