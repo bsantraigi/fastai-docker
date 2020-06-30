@@ -44,10 +44,24 @@ WORKDIR /notebooks
 # CMD source activate base
 CMD source ~/.bashrc
 
-RUN chmod -R a+w /notebooks
+# ============ CREATING USER =================
+ENV USER bishal
+RUN \
+  #
+  # paperspace bug!
+  useradd -d /home/$USER -ms /bin/bash -G sudo,video -p $(echo "pass" | openssl passwd -1 -stdin) $USER \
+  && chmod g+w /etc/passwd /etc/group \
+  && chown -R $USER:$USER /usr/local
+
+RUN echo "bishal ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+# ============================================
+
+RUN chown $USER:$USER /notebooks
 WORKDIR /notebooks
 
-COPY config.yml /root/.fastai/config.yml
+# COPY config.yml /root/.fastai/config.yml
 COPY run.sh /run.sh
-
+RUN chmod a+x /run.sh
+USER $USER
+RUN conda init
 CMD ["/run.sh"]
