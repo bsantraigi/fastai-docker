@@ -1,4 +1,4 @@
-name: fastai
+name: base
 channels:
   - conda-forge
   - pytorch
@@ -33,7 +33,6 @@ dependencies:
       - fastai2
       - fastprocess
       - utils
-      - graphviz
       - nbdev
       - azure-cognitiveservices-search-imagesearch
       - blingfire

@@ -24,35 +24,59 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV LD_LIBRARY_PATH /usr/local/nvidia/lib:/usr/local/nvidia/lib64
 ENV PYTHON_VERSION=3.7
 
+RUN curl -L https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -o miniconda.sh \
+  && bash miniconda.sh -b -p /opt/conda \
+  && rm -f miniconda.sh
+
+ENV PATH=$PATH:/opt/conda/bin/
+
+RUN /opt/conda/bin/conda install conda-build
+
+ENV USER fastai
+
+# Create Enviroment
+COPY enviroment.yaml /enviroment.yaml
+# RUN /opt/conda/bin/conda env create -f enviroment.yaml
+RUN conda env update --name base --file enviroment.yaml \
+  && conda clean --all -y
+
 # ========= TO ADD: SPACE OPTIMIZATION
 #   && echo '** cleaning caches...' \
 #   && conda clean --all -y \
 #   && rm -rf $HOME/.cache/pip \
 #   && echo '** cleaning caches done.' \
 
-# =============== DO NOT CHANGE ANYTHING ABOVE THIS ===================================
-# =============== BUILD WILL TAKE LONG TIME TO INSTALL EVERYTHING =====================
-
-WORKDIR /notebooks
-
 # Activate Source
 # CMD source activate base
 CMD source ~/.bashrc
+
+# Jupyter extensions
+COPY extensions.sh /extensions.sh
+RUN bash /extensions.sh
+
+# =============== DO NOT CHANGE ANYTHING ABOVE THIS ===================================
+# =============== BUILD WILL TAKE LONG TIME TO INSTALL EVERYTHING =====================
 
 # ============ CREATING SUDO USER =================
 ENV USER bishal
 RUN \
   #
   # paperspace bug!
-  useradd -d /home/$USER -ms /bin/bash -G sudo,video -p $(echo "pass" | openssl passwd -1 -stdin) $USER \
+  useradd -d /storage -s /bin/bash -G sudo,video -p $(echo "pass" | openssl passwd -1 -stdin) $USER \
   && chmod g+w /etc/passwd /etc/group \
   && chown -R $USER:$USER /usr/local \
   && echo "bishal ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers \
   && echo "root ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
 # =======  OWN STUFF  ==========
-RUN chown $USER:$USER /opt
-RUN chown $USER:$USER /notebooks
+
+WORKDIR /storage
+RUN chown -R bishal:bishal /opt/conda
+# RUN chown $USER:$USER /notebooks
+RUN chown $USER:$USER /storage
+
+# =============== #2. DO NOT CHANGE ANYTHING ABOVE THIS ===============================
+# =============== BUILD WILL TAKE LONG TIME TO INSTALL EVERYTHING =====================
 
 # ===== STARTUP SCRIPT =====
 COPY run.sh /run.sh
@@ -60,23 +84,8 @@ RUN chmod a+x /run.sh
 
 # ===== ACTIVATE USER =====
 USER $USER
-
-# ====== Install miniconda and other packages ========
-RUN curl -L https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -o miniconda.sh \
-  && bash miniconda.sh -b -p /home/$USER/miniconda/ \
-  && rm -f miniconda.sh
-
-ENV PATH=$PATH:/home/$USER/miniconda/bin
-
-# ====== Create Enviroment ===========================
-COPY enviroment.yaml /opt/enviroment.yaml
-# RUN /opt/conda/bin/conda env create -f enviroment.yaml
-RUN conda install conda-build && conda env update --name base --file /opt/enviroment.yaml \
-  && conda clean --all -y
-
-# Jupyter extensions
-COPY extensions.sh /opt/extensions.sh
-RUN bash /opt/extensions.sh
-
 RUN conda init
-CMD ["/run.sh"]
+WORKDIR /storage
+# ENV SHELL=/bin/bash
+# CMD source ~/.bashrc
+CMD ["bash", "-c", "/run.sh"]
